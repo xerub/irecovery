@@ -265,21 +265,19 @@ void irecv_sendcmd(char *cmd) {
 	irecv_close(devPhone);	
 }
 
-int irecv_reset(void) {
+void irecv_reset(void) {
   devPhone = irecv_init(WTF_MODE);
   if(devPhone == NULL) {
     devPhone = irecv_init(RECV_MODE);
     if(devPhone == NULL) {
       printf("No iPhone/iPod found.\n");
-      return 1;
+      return;
     }
   }
   
   if(devPhone != NULL) {
 	  usb_reset(devPhone);
 	}
-	
-  return 0;
 }
 
 int irecv_usage(void) {
