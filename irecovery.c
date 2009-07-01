@@ -265,6 +265,23 @@ void irecv_sendcmd(char *cmd) {
 	irecv_close(devPhone);	
 }
 
+int irecv_reset(void) {
+  devPhone = irecv_init(WTF_MODE);
+  if(devPhone == NULL) {
+    devPhone = irecv_init(RECV_MODE);
+    if(devPhone == NULL) {
+      printf("No iPhone/iPod found.\n");
+      return 1;
+    }
+  }
+  
+  if(devPhone != NULL) {
+	  usb_reset(devPhone);
+	}
+	
+  return 0;
+}
+
 int irecv_usage(void) {
 		printf("./iRecovery [args]\n");
 		printf("\t-f <file>\t\tupload file.\n");
@@ -298,7 +315,7 @@ int main(int argc, char *argv[]) {
 	} else if(strcmp(argv[1], "-s") == 0) {
 		irecv_console();
 	} else if(strcmp(argv[1], "-r") == 0) {
-		usb_reset(devPhone);
+    irecv_reset();
 	}
 	
 	return 0;
