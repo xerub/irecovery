@@ -140,7 +140,7 @@ int irecv_sendfile(struct usb_dev_handle *handle, char *filename) {
 
 int irecv_sendbuffer(struct usb_dev_handle* handle, char* data, int len) {
 	if (!handle) {
-		printf("device has not been initialized!\n");
+		printf("Device has not been initialized!\n");
 		return 1;
 	}
 
