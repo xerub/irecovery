@@ -305,6 +305,7 @@ void irecv_usage(void) {
 	printf("\t-r\t\t\treset usb.\n");
 	printf("\t-c \"command\"\t\tsends a single command.\n");
 	printf("\t-s\t\t\tstarts a shell.\n\n");
+	printf("\t-k\t\t\tsend usb exploit.\n\n");
 }
 
 int main(int argc, char *argv[]) {
