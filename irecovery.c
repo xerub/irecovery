@@ -70,6 +70,12 @@ void irecv_close(struct usb_dev_handle *handle) {
 	}
 }
 
+void irecv_reset(struct usb_dev_handle *handle) {
+	if (handle != NULL) {
+		usb_reset(handle);
+	}
+}
+
 int irecv_sendfile(struct usb_dev_handle *handle, char *filename) {
 	FILE* file = fopen(filename, "rb");
 	if (file == NULL) {
@@ -201,7 +207,7 @@ int irecv_sendcmd(struct usb_dev_handle *handle, char *command) {
 		return 1;
 	}
 
-	if (!usb_control_msg(handle, 0x40, 0, 0, 0, command, length + 1, 10)) {
+	if (!usb_control_msg(handle, 0x40, 0, 0, 0, command, length + 1, 1000)) {
 		printf("[!] %s", usb_strerror());
 	}
 
@@ -221,7 +227,15 @@ int irecv_parsecmd(struct usb_dev_handle *handle, char *command) {
 		char* filename = strtok(NULL, " ");
 		if (filename != NULL) {
 			irecv_sendfile(handle, filename);
-			irecv_sendcmd(handle, &command[strlen(action) + 1]);
+			irecv_reset(handle);
+			
+		    char* cmd = "bgcolor";
+		    char* args = strtok(NULL, "\n");
+		    char* send = malloc(strlen(cmd) + strlen(args) + 1000);
+		    printf("Sending %s %s\n", filename, args);
+		    sprintf(send, "%s %s", cmd, args);
+			irecv_sendcmd(handle, send);
+			free(send);
 		}
 	}
 
@@ -230,6 +244,11 @@ int irecv_parsecmd(struct usb_dev_handle *handle, char *command) {
 }
 
 void irecv_console(struct usb_dev_handle *handle) {
+	if (usb_set_configuration(handle, 1) < 0) {
+		printf("%s\n", usb_strerror());
+		return;
+	}
+
 	if (usb_claim_interface(handle, 1) < 0) {
 		printf("%s\n", usb_strerror());
 		return;
@@ -256,7 +275,7 @@ void irecv_console(struct usb_dev_handle *handle) {
 		int bytes = 0;
 		while (bytes >= 0) {
 			memset(buffer, 0, BUF_SIZE);
-			bytes = usb_bulk_read(handle, 0x81, buffer, BUF_SIZE, 250);
+			bytes = usb_bulk_read(handle, 0x81, buffer, BUF_SIZE, 1000);
 			if (bytes > 0) {
 				int i = 0;
 				int next = 0;
@@ -288,15 +307,9 @@ void irecv_console(struct usb_dev_handle *handle) {
 		free(command);
 	}
 	
-    fclose(fd);
-	usb_release_interface(handle, 0);
+	fclose(fd);
+	usb_release_interface(handle, 1);
 	free(buffer);
-}
-
-void irecv_reset(struct usb_dev_handle *handle) {
-	if (handle != NULL) {
-		usb_reset(handle);
-	}
 }
 
 void irecv_usage(void) {

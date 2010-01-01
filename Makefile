@@ -13,3 +13,5 @@ macosx:
 linux:
 		$(CC) irecovery.c -o irecovery $(CFLAGS_LNX)
 
+clean:
+		rm -rf *.o irecovery
