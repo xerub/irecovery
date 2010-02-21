@@ -223,24 +223,10 @@ int irecv_parsecmd(struct usb_dev_handle *handle, char *command) {
 		}
 	}
 
-	if (strcmp("/run", action) == 0) {
-		char* filename = strtok(NULL, " ");
-		if (filename != NULL) {
-			irecv_sendfile(handle, filename);
-			irecv_reset(handle);
-			
-		    char* cmd = "bgcolor";
-		    char* args = strtok(NULL, "\n");
-		    char* send = malloc(strlen(cmd) + strlen(args) + 1000);
-		    printf("Sending %s %s\n", filename, args);
-		    sprintf(send, "%s %s", cmd, args);
-			irecv_sendcmd(handle, send);
-			free(send);
+	if (strcmp("/usbhax", action) == 0) {
+			printf("usbhax 0x21-2-0-0: %04x\n", usb_control_msg(handle, 0x21, 2, 0,
+																0, 0, 0, 1000));   
 		}
-	}
-
-	free(action);
-	return 0;
 }
 
 void irecv_console(struct usb_dev_handle *handle) {
@@ -318,7 +304,10 @@ void irecv_usage(void) {
 	printf("\t-r\t\t\treset usb.\n");
 	printf("\t-c \"command\"\t\tsends a single command.\n");
 	printf("\t-s\t\t\tstarts a shell.\n");
-	printf("\t-k\t\t\tsend usb exploit.\n\n");
+	printf("\t-k\t\t\tsend usb exploit.\n");
+		printf("\t===============SHELL CMDS===============\n");
+	printf("\t/usbhax\t\t\tsend usb exploit in shell.\n");
+	printf("\t/sendfile\t\tsend file in shell\n");
 }
 
 int main(int argc, char *argv[]) {
