@@ -210,14 +210,26 @@ int irecv_buffer(struct usb_dev_handle* handle, char* data, int len) {
 }
 
 int irecv_command(struct usb_dev_handle *handle, int argc, char* argv[]) {
+/*
+    int i = 0;
+    char command[0x200];
+    memset(command, 0, 0x200);
+	for(i = 0; i < argc; i++) {
+	    size_t size = strlen(command);
+		if(i > 0 && (size + 1) < 0x200) {
+			strncat(command, " ", 1);
+		}
+		strncat(command, argv[i], 0x200 - size);
+	}
+*/
     char* command = argv[0];
 	size_t length = strlen(command);
 	if(length >= 0x200) {
-		printf("irecv_command: Error command is too long!\n");
+		printf("irecv_command: Command is too long!\n");
 		return -1;
 	}
 
-	if(!usb_control_msg(handle, 0x40, 0, 0, 0, command, length + 1, 1000)) {
+	if(!usb_control_msg(handle, 0x40, 0, 0, 0, command, length+1, 1000)) {
 		printf("irecv_command: Error sending command!\n");
 		return -1;
 	}
@@ -249,15 +261,16 @@ int irecv_exploit(struct usb_dev_handle* handle, char* payload) {
 int irecv_parse(struct usb_dev_handle* handle, char* command) {
     unsigned int status = 0;
 	char* action = strtok(strdup(command), " ");
-	if(!strcmp(action, "exit")) {
+	if(!strcmp(action, "help")) {
+	    printf("Commands:\n");
+	    printf("\t/exit\t\t\texit from recovery console.\n");
+	    printf("\t/upload <file>\t\tupload file to device.\n");
+	    printf("\t/exploit [payload]\tsend usb exploit packet.\n");
+	    
+	} else if(!strcmp(action, "exit")) {
 	    free(action);
 	    return -1;
 	    
-	} else if(!strcmp(action, "help")) {
-	    printf("Commands:\n");
-	    printf("\t/upload <file>\t\tupload file in shell\n");
-	    printf("\t/exploit [payload]\t\tsend usb exploit in shell.\n");
-	
 	} else if(strcmp(action, "upload") == 0) {
 		char* filename = strtok(NULL, " ");
 		if(filename != NULL) {
@@ -301,7 +314,7 @@ int irecv_console(struct usb_dev_handle *handle, char* logfile) {
 	
 	FILE* fd = NULL;
 	if(logfile != NULL) {
-	    fd = fopen("irecovery.log", "w");
+	    fd = fopen(logfile, "w");
 	    if(fd == NULL) {
 	        printf("irecv_console: Unable to open log file!\n");
 	        free(buffer);
@@ -313,7 +326,7 @@ int irecv_console(struct usb_dev_handle *handle, char* logfile) {
 		int bytes = 0;
 		while(bytes >= 0) {
 			memset(buffer, 0, BUF_SIZE);
-			bytes = usb_bulk_read(handle, 0x81, buffer, BUF_SIZE, 1000);
+			bytes = usb_bulk_read(handle, 0x81, buffer, BUF_SIZE, 500);
 			if(bytes > 0) {
 				int i = 0;
 				int next = 0;
@@ -355,9 +368,9 @@ void irecv_usage(void) {
 	printf("./irecovery [args]\n");
 	printf("\t-f <file>\t\tupload file.\n");
 	printf("\t-c <command>\t\tsend a single command.\n");
-	printf("\t-k [payload]\t\tsend usb exploit and payload.\n\n");
+	printf("\t-k [payload]\t\tsend usb exploit and payload.\n");
 	printf("\t-s [logfile]\t\tstarts a shell, and log output.\n");
-	printf("\t-r\t\t\treset usb.\n");
+	printf("\t-r\t\t\treset usb.\n\n");
 }
 
 int main(int argc, char *argv[]) {
