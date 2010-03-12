@@ -327,18 +327,15 @@ int irecv_console(struct usb_dev_handle *handle, char* logfile) {
 		while(bytes >= 0) {
 			memset(buffer, 0, BUF_SIZE);
 			bytes = usb_bulk_read(handle, 0x81, buffer, BUF_SIZE, 500);
-			if(bytes > 0) {
-				int i = 0;
-				int next = 0;
-				for(i = 0; i < bytes; i += next) {
-					next = strlen(&buffer[i]) + 1;
-					fprintf(stdout, "%s", &buffer[i]);
-					if(fd) fprintf(fd, "%s", &buffer[i]);
-				}
+			int i;
+			for(i = 0; i < bytes; ++i)
+			{
+				fprintf(stdout, "%c", buffer[i]);
+				if(fd) fprintf(fd, "%c", buffer[i]);
 			}
 		}
 
-		char* command = readline("] ");
+		char* command = readline("iRecovery> ");
 		if(command && *command) {
 			add_history(command);
 		}
