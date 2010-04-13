@@ -449,7 +449,7 @@ int main(int argc, char *argv[]) {
 	} else if(!strcmp(argv[1], "-r")) {
         irecv_reset(handle);
 	} else if (!strcmp(argv[1], "-l")) {
-	    irec_list(handle, argv[2]);
+	    irecv_list(handle, argv[2]);
 	}
 	
 	irecv_close(handle);
