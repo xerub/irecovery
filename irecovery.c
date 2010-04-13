@@ -361,12 +361,42 @@ int irecv_console(struct usb_dev_handle *handle, char* logfile) {
 	usb_release_interface(handle, 1);
 }
 
+int irecv_list(struct usb_dev_handle* handle, char* filename) {
+
+	if (handle == NULL) {
+		printf("irecv_list: Device has not been initialized!\n");
+		return -1;
+	}
+	
+	//max command length
+	char line[0x200];
+	FILE* script = fopen(filename, "rb");
+
+	if (script == NULL) {
+		printf("irecv_list: unable to find file!\n");
+		return -1;
+	}
+	
+	printf("\n");
+
+	//irecv_command(handle, temp_len, &line);
+	while (fgets(line, 0x200, script) != NULL) {
+		printf("irecv_list: sending> %s\n", line);
+		char *command[1];
+		command[0] = line;
+		irecv_command(handle, 1, command); 
+	}
+
+	fclose(script);
+}
+
 void irecv_usage(void) {
 	printf("./irecovery [args]\n");
 	printf("\t-f <file>\t\tupload file.\n");
 	printf("\t-c <command>\t\tsend a single command.\n");
 	printf("\t-k [payload]\t\tsend usb exploit and payload.\n");
 	printf("\t-s [logfile]\t\tstarts a shell, and log output.\n");
+	printf("\t-l <file> \t\tsends a set of commands from a file (one per line).\n");
 	printf("\t-r\t\t\treset usb.\n\n");
 }
 
@@ -418,7 +448,9 @@ int main(int argc, char *argv[]) {
 	    
 	} else if(!strcmp(argv[1], "-r")) {
         irecv_reset(handle);
-	} 
+	} else if (!strcmp(argv[1], "-l")) {
+	    irec_list(handle, argv[2]);
+	}
 	
 	irecv_close(handle);
 	return 0;
