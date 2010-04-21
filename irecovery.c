@@ -82,6 +82,7 @@ int irecv_upload(struct usb_dev_handle* handle, char* filename) {
 		return -1;
 	}
 	
+	printf("%s", filename);
 	FILE* file = fopen(filename, "rb");
 	if(file == NULL) {
 		printf("irecv_upload: Unable to find file!\n");
@@ -381,10 +382,19 @@ int irecv_list(struct usb_dev_handle* handle, char* filename) {
 
 	//irecv_command(handle, temp_len, &line);
 	while (fgets(line, 0x200, script) != NULL) {
-		printf("irecv_list: sending> %s\n", line);
 		char *command[1];
 		command[0] = line;
-		irecv_command(handle, 1, command); 
+
+		if (command[0][0] == '/') { //Command (exploit/upload etc)
+			char *com = command[0] + 1;
+
+			printf("irecv_list: command> %s", com);
+			irecv_parse(handle, com);
+		} else {
+			printf("irecv_list: sending> %s", line);
+			irecv_command(handle, 1, command);
+		}
+
 	}
 
 	fclose(script);
