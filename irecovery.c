@@ -380,7 +380,6 @@ int irecv_list(struct usb_dev_handle* handle, char* filename) {
 	
 	printf("\n");
 
-	//irecv_command(handle, temp_len, &line);
 	while (fgets(line, 0x200, script) != NULL) {
 		char *command[1];
 		command[0] = line;
@@ -388,7 +387,7 @@ int irecv_list(struct usb_dev_handle* handle, char* filename) {
 		if (command[0][0] == '/') { //Command (exploit/upload etc)
 			char *com = command[0] + 1;
 
-			printf("irecv_list: command> %s", com);
+			printf("irecv_list: command> %s", com); //broken need to remove char10
 			irecv_parse(handle, com);
 		} else {
 			printf("irecv_list: sending> %s", line);
