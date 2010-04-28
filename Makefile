@@ -8,13 +8,17 @@ all:
 		@echo 'LINUX USERS: make linux'
 		@echo 'MAC OS X USERS: make macosx'
 	 	@echo 'WINDOWS USERS: make win'
-macosx:
-		$(CC) irecovery.c -o irecovery $(CFLAGS_OSX)
-
+macosx:	
+		@echo 'Buildling irecovery (Mac Os X)'			
+		@$(CC) irecovery.c -o irecovery $(CFLAGS_OSX)
 linux:
-		$(CC) irecovery.c -o irecovery $(CFLAGS_LNX)
+		@echo 'Buildling irecovery (Linux)'
+		@$(CC) irecovery.c -o irecovery $(CFLAGS_LNX)
 win:
-		$(CC) irecovery.c -o irecovery -I "C:\MinGW\include" -L "C:\MinGW\lib" $(CFLAGS_WIN)
+		@echo 'Buildling irecovery (Windows)'
+		@$(CC) irecovery.c -o irecovery -I "C:\MinGW\include" -L "C:\MinGW\lib" $(CFLAGS_WIN)
 
 clean:
-		rm -rf *.o irecovery
+		@echo 'Cleaning...'
+		@rm -rf *.o irecovery
+		@echo 'Cleaning finished.'
