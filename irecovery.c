@@ -77,9 +77,10 @@ int device_sendcmd(char* argv[]) {
 		return -1;
 	}
 	
-	int status;
-	
-	status = libusb_control_transfer(device, 0x40, 0, 0, 0, command, (length + 1), 1000);
+	if (! libusb_control_transfer(device, 0x40, 0, 0, 0, command, (length + 1), 1000)) {
+		printf("[Device] Failed to send command.\r\n");
+		return -1;
+	}
 	
 	return 1;
 	
@@ -532,6 +533,7 @@ int prog_console(char* logfile) {
 				
 				if (! strcmp(command, "getenv")) {
 					
+					//libusb_bulk_transfer(device, 0xC0, 0, 0, 0, data, max_data, 500);
 					libusb_control_transfer(device, 0xC0, 0, 0, 0, command, strlen(command), 500);
 					//printf("%s\r\n", command);
 					
