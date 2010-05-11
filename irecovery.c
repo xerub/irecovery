@@ -164,16 +164,15 @@ int device_upload(char* filename) {
 			printf("[Device] Error receiving status while uploading file.\r\n");
 			return -1;
 		
-		} else {
- 
-			if(response[4] != 5) {
-				
-				printf("[Device] Invalid status error during file upload.\r\n");
-				return -1;
- 
-			} else 
-				printf("[Device] Upload successfull.\r\n");
 		}
+ 
+		if(response[4] != 5) {
+	
+			printf("[Device] Invalid status error during file upload.\r\n");
+			return -1;
+		}
+			
+		printf("[Device] Upload successfull.\r\n");
 	}
 	
 	printf("[Device] Executing file.\r\n");
@@ -182,20 +181,16 @@ int device_upload(char* filename) {
 	
 	for(i = 6; i <= 8; i++) {
 		
-		if( libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
+		if(libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
 			
 			printf("[Device] Error receiving execution status.\r\n");
 			return -1;
-		
-		} else {
+		}
 			
-			if(response[4] != i) {
+		if(response[4] != i) {
 				
-				printf("[Device] Invalid execution status.\r\n");
-				return -1;
-			
-			}
-		
+			printf("[Device] Invalid execution status.\r\n");
+			return -1;
 		}
 	}
  
@@ -231,23 +226,18 @@ int device_buffer(char* data, int len) {
  
 			printf("[Device] Error sending packet from buffer.\r\n");
 			return -1;
-			
 		}
  
 		if( libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
 			
 			printf("[Device] Error receiving status from buffer.\r\n");
 			return -1;
-
-		} else {
+		}
+		
+		if(response[4] != 5) {
 			
-			if(response[4] != 5) {
-			
-				printf("[Device] Invalid status error from buffer.\r\n");
-				return -1;
-
-			}
-			
+			printf("[Device] Invalid status error from buffer.\r\n");
+			return -1;
 		}
 	}
  
@@ -259,14 +249,12 @@ int device_buffer(char* data, int len) {
 			
 			printf("[Device] Error receiving execution status from buffer.\r\n");
 			return -1;
-		
-		} else {
+		}
 			
-			if(response[4] != i) {
-				printf("[Device] Invalid execution status from buffer.\r\n");
-				return -1;
-			}
+		if(response[4] != i) {
 			
+			printf("[Device] Invalid execution status from buffer.\r\n");
+			return -1;
 		}
 	}
 	
@@ -549,9 +537,6 @@ int prog_console(char* logfile) {
 				
 				if (! strcmp(command, "reboot"))
 					return 1;
-				
-				//free(command);
-				
 			}
 			
 		}
@@ -611,11 +596,8 @@ void prog_handle(int argc, char *argv[]) {
 			if (! strcmp(argv[1], "-x")) {
 			
 				device_reset();
-				
 			}
-			
 		}
-		
 	} else if(! strcmp(argv[1], "-e")) {
 		
 		if(argc >= 3)
