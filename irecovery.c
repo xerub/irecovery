@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -334,8 +335,10 @@ void prog_init() {
 
 void prog_exit() {
 	
+	printf("\r\n");
 	device_close();
 	libusb_exit(NULL);
+	exit(0);
 	
 }
 
@@ -623,14 +626,18 @@ void prog_handle(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	printf("iRecovery - Version: %s - For LIBUSB: %s\n", VERSION, LIBUSB_VERSION);
 	printf("by westbaer. Thanks to pod2g, tom3q, planetbeing, geohot and posixninja.\r\nRewrite by GreySyntax.\n\n");
-
+	
 	if(argc < 2) {
 		prog_usage();
-		return 1;
+		exit(1);
 	}
 	
 	prog_init();
 
+	(void) signal(SIGTERM, prog_exit);
+	(void) signal(SIGQUIT, prog_exit);
+	(void) signal(SIGINT, prog_exit);
+	
 	if (device == NULL) {
 		printf("[Device] Failed to connect, check the device is in DFU or WTF (Recovery) Mode.\r\n");
 		return -1;
@@ -641,5 +648,5 @@ int main(int argc, char *argv[]) {
 	prog_handle(argc, argv); //Handle arguments
 	
 	prog_exit();
-	return 0;
+	exit(0);
 }
