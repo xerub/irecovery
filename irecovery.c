@@ -316,19 +316,27 @@ int device_sendrawusb0x21(char *command) {
 void prog_usage() {
 	
 	printf("./irecovery [args]\n");
-	printf("\t-a\t\t\tenables auto-boot and reboots the device (exit recovery loop).");
-	printf("\t-c <command>\t\tsend a single command.\r\n");
-	printf("\t-r\t\t\treset usb.\r\n");
-	printf("\t-b <file> \t\tsend a send batch commands from a file (1 per line).");
-	printf("\t-u <file>\t\tupload file.\n");
-	printf("\t-x <file> \t\tUploads a file, then auto-resets the usb connection.\n");
-	printf("\t-e [payload]\t\tsend usb exploit and payload.\n");
-	printf("\t-x21 <cmd>\t\tSend raw CMD to 0x21.\n");
-	printf("\t-x40 <cmd>\t\tSend raw CMD to 0x40.\n");
-	printf("\t-xA1 <cmd>\t\tSend raw CMD to 0xA1.\n");
+	printf("\t-a\t\tenables auto-boot and reboots the device (exit recovery loop).\r\n");
+	printf("\t-s\t\tstarts a shell.\r\n");
+	printf("\t-r\t\tusb reset.\r\n");
+	printf("\t-u <file>\tuploads a file.\r\n");
+	printf("\t-c \"command\"\tsend a single command.\r\n");
+	printf("\t-b <file>\truns batch commands from a file(one per line).\r\n");
+	printf("\t-x <file>\tuploads a file then resets the usb connection.\r\n");
+	printf("\t-e <file>\tupload a file then run usb exploit.\r\n");
+	printf("\t-x21 <command>\tsend a raw command to 0x21.\r\n");
+	printf("\t-x40 <command>\tsend a raw command to 0x41.\r\n");
+	printf("\t-xA1 <command>\tsend a raw command to 0xA1.\r\n");
+	printf("\r\n");
+	printf("== Console / Batch Commands ==\r\n");
+	printf("\r\n");
+	printf("\t/auto-boot\tenables auto-boot and reboots the device (exit recovery loop).\r\n");
+	printf("\t/exit\t\texit the recovery console.\r\n");
+	printf("\t/upload  <file>\tupload a file to the device.\r\n");
+	printf("\t/exploit <file>\tupload a file then execute a usb exploit.\r\n");
+	printf("\t/batch   <file>\texecute commands from a batch file.\r\n");
 	
 }
-
 void prog_init() {
 	
 	libusb_init(NULL);
@@ -532,10 +540,10 @@ int prog_console(char* logfile) {
 				device_sendcmd(&command);
 				
 				if (! strcmp(command, "getenv")) {
-					
+					char response[6];
 					//libusb_bulk_transfer(device, 0xC0, 0, 0, 0, data, max_data, 500);
-					libusb_control_transfer(device, 0xC0, 0, 0, 0, command, strlen(command), 500);
-					//printf("%s\r\n", command);
+					libusb_control_transfer(device, 0xC0, 3, 0, 0, response, 6, 1000);
+					printf("%s\r\n", response);
 					
 				}
 				
