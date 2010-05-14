@@ -530,16 +530,17 @@ int prog_console(char* logfile) {
 				
 				device_sendcmd(&command);
 				
-				if (! strcmp(command, "getenv")) {
-					char response[6];
-					//libusb_bulk_transfer(device, 0xC0, 0, 0, 0, data, max_data, 500);
-					libusb_control_transfer(device, 0xC0, 3, 0, 0, response, 6, 1000);
-					printf("%s\r\n", response);
+				char* action = strtok(strdup(command), " ");
+				
+				if (! strcmp(action, "getenv")) {
+					char response[0x200];
+					libusb_control_transfer(device, 0xC0, 0, 0, 0, response, 0x200, 1000);
+					printf("Env: %s\r\n", response);
 					
 				}
 				
-				if (! strcmp(command, "reboot"))
-					return 1;
+				if (! strcmp(action, "reboot"))
+					return -1;
 			}
 			
 		}
