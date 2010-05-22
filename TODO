@@ -1,0 +1,9 @@
+/***
+ * TODO (iRecovery)
+ * 1) Rewrite device_buffer so that device_upload uses it (no point in repeated code!).
+ * 2) Remove unused functions and reorganise source (use headers properly).
+ * 3) Convert source a library(?).
+ * 4) Rewrite the major functions most of this is done in iRecovery++
+ * 5) Work on a plugin system (grab ecid etc…)
+ * 6) Rewrite scripting with some basic logic.
+ */
