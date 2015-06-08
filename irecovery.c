@@ -25,11 +25,9 @@
 #include <readline/history.h>
 #include <libusb-1.0/libusb.h>
 
-#define VERSION			"2.0.4"
+#define VERSION			"2.0.2"
 #define LIBUSB_VERSION	"1.0"
 #define LIBUSB_DEBUG		0
-
-#define CMD_LOG			".irecovery_history"
 
 #define VENDOR_ID       (int)0x05AC
 #define NORM_MODE       (int)0x1290
@@ -446,19 +444,19 @@ int prog_batch(char *filename) {
 
 
 int prog_console(char* logfile) {
-	
+
 	if(libusb_set_configuration(device, 1) < 0) {
 		
 		printf("[Program] Error setting configuration.\r\n");
 		return -1;
-		
+	
 	}
 	
 	if(libusb_claim_interface(device, 1) < 0) {
 		
 		printf("[Program] Error claiming interface.\r\n");
 		return -1;
-		
+	
 	}
 	
 	if(libusb_set_interface_alt_setting(device, 1, 1) < 0) {
@@ -473,7 +471,7 @@ int prog_console(char* logfile) {
 		
 		printf("[Program] Error allocating memory.\r\n");
 		return -1;
-		
+	
 	}
 	
 	FILE* fd = NULL;
@@ -492,8 +490,6 @@ int prog_console(char* logfile) {
 	
 	if (logfile)
 		printf("[Program] Output being logged to: %s.\r\n", logfile);
-	
-	read_history(CMD_LOG);
 	
 	while(1) {
 		
@@ -515,33 +511,37 @@ int prog_console(char* logfile) {
 		
 		char *command = readline("iRecovery> ");
 		
-		if (command != NULL && *command) {
-			
+		if (command != NULL) {
 			
 			add_history(command);
-			write_history(CMD_LOG);
 			
 			if(fd) fprintf(fd, ">%s\n", command);
 			
-			if (command[0] == '/' && strlen(command) > 1 && command[1] != ' ' && prog_parse(&command[1]) < 0) {
+			if (command[0] == '/') {
 				
-				free(command);
-				continue;
-			}
-			
-			device_sendcmd(&command);
-			
-			char* action = strtok(strdup(command), " ");
-			
-			if (! strcmp(action, "getenv")) {
-				char response[0x200];
-				libusb_control_transfer(device, 0xC0, 0, 0, 0, response, 0x200, 1000);
-				printf("Env: %s\r\n", response);
+				if (prog_parse(&command[1]) < 0) {
+					
+					free(command);
+					break;
+					
+				}
 				
+			} else {
+				
+				device_sendcmd(&command);
+				
+				char* action = strtok(strdup(command), " ");
+				
+				if (! strcmp(action, "getenv")) {
+					char response[0x200];
+					libusb_control_transfer(device, 0xC0, 0, 0, 0, response, 0x200, 1000);
+					printf("Env: %s\r\n", response);
+					
+				}
+				
+				if (! strcmp(action, "reboot"))
+					return -1;
 			}
-			
-			if (! strcmp(action, "reboot"))
-				return -1;
 			
 		}
 		
