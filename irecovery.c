@@ -539,6 +539,7 @@ int prog_console(char* logfile) {
 
 				if (! strcmp(action, "getenv")) {
 					char response[0x200];
+					memset(response, 0, sizeof(response));
 					libusb_control_transfer(device, 0xC0, 0, 0, 0, response, 0x200, 1000);
 					printf("Env: %s\n", response);
 
