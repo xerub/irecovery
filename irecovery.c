@@ -74,12 +74,12 @@ int device_sendcmd(char* argv[]) {
 	size_t length = strlen(command);
 
 	if (length >= 0x200) {
-		printf("[Device] Failed to send command (to long).");
+		printf("[Device] Failed to send command (too long).\n");
 		return -1;
 	}
 
 	if (! libusb_control_transfer(device, 0x40, 0, 0, 0, command, (length + 1), 1000)) {
-		printf("[Device] Failed to send command.\r\n");
+		printf("[Device] Failed to send command.\n");
 		return -1;
 	}
 
@@ -89,7 +89,7 @@ int device_sendcmd(char* argv[]) {
 
 int device_autoboot() {
 
-	printf("[Device] Enabling auto-boot.\r\n");
+	printf("[Device] Enabling auto-boot.\n");
 
 	char* command[3];
 	command[0] = "setenv auto-boot true";
@@ -110,7 +110,7 @@ int device_upload(char* filename) {
 
 	if(file == NULL) {
 
-		printf("[Program] Unable to find file. (%s)\r\n",filename);
+		printf("[Program] Unable to find file. (%s)\n",filename);
 		return 1;
 
 	}
@@ -123,7 +123,7 @@ int device_upload(char* filename) {
 
 	if (buffer == NULL) {
 
-		printf("[Program] Error allocating memory.\r\n");
+		printf("[Program] Error allocating memory.\n");
 		fclose(file);
 		return 1;
 
@@ -151,32 +151,32 @@ int device_upload(char* filename) {
 		int size = i + 1 < packets ? 0x800 : last;
 
 		sizesent+=size;
-		printf("[Device] Sending packet %d of %d (0x%08x of 0x%08x bytes)/", i+1, packets, sizesent, len);
+		printf("[Device] Sending packet %d of %d (0x%08x of 0x%08x bytes)\n", i+1, packets, sizesent, len);
 
 		if(! libusb_control_transfer(device, 0x21, 1, i, 0, &buffer[i * 0x800], size, 1000)) {
 
-			printf("[Device] Error sending packet.\r\n");
+			printf("[Device] Error sending packet.\n");
 			return -1;
 
 		}
 
 		if( libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
 
-			printf("[Device] Error receiving status while uploading file.\r\n");
+			printf("[Device] Error receiving status while uploading file.\n");
 			return -1;
 
 		}
 
 		if(response[4] != 5) {
 
-			printf("[Device] Invalid status error during file upload.\r\n");
+			printf("[Device] Invalid status error during file upload.\n");
 			return -1;
 		}
 
-		printf("[Device] Upload successfull.\r\n");
+		printf("[Device] Upload successful.\n");
 	}
 
-	printf("[Device] Executing file.\r\n");
+	printf("[Device] Executing file.\n");
 
 	libusb_control_transfer(device, 0x21, 1, i, 0, buffer, 0, 1000);
 
@@ -184,18 +184,18 @@ int device_upload(char* filename) {
 
 		if(libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
 
-			printf("[Device] Error receiving execution status.\r\n");
+			printf("[Device] Error receiving execution status.\n");
 			return -1;
 		}
 
 		if(response[4] != i) {
 
-			printf("[Device] Invalid execution status.\r\n");
+			printf("[Device] Invalid execution status.\n");
 			return -1;
 		}
 	}
 
-	printf("[Device] Successfully executed file.\r\n");
+	printf("[Device] Successfully executed file.\n");
 
 	free(buffer);
 	return 0;
@@ -225,19 +225,19 @@ int device_buffer(char* data, int len) {
 
 		if(! libusb_control_transfer(device, 0x21, 1, i, 0, &data[i * 0x800], size, 1000)) {
 
-			printf("[Device] Error sending packet from buffer.\r\n");
+			printf("[Device] Error sending packet from buffer.\n");
 			return -1;
 		}
 
 		if( libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
 
-			printf("[Device] Error receiving status from buffer.\r\n");
+			printf("[Device] Error receiving status from buffer.\n");
 			return -1;
 		}
 
 		if(response[4] != 5) {
 
-			printf("[Device] Invalid status error from buffer.\r\n");
+			printf("[Device] Invalid status error from buffer.\n");
 			return -1;
 		}
 	}
@@ -248,13 +248,13 @@ int device_buffer(char* data, int len) {
 
 		if( libusb_control_transfer(device, 0xA1, 3, 0, 0, response, 6, 1000) != 6) {
 
-			printf("[Device] Error receiving execution status from buffer.\r\n");
+			printf("[Device] Error receiving execution status from buffer.\n");
 			return -1;
 		}
 
 		if(response[4] != i) {
 
-			printf("[Device] Invalid execution status from buffer.\r\n");
+			printf("[Device] Invalid execution status from buffer.\n");
 			return -1;
 		}
 	}
@@ -268,7 +268,7 @@ int device_exploit(char* payload) {
 
 		if(device_upload(payload) < 0) {
 
-			printf("[Device] Error uploading payload.\r\n");
+			printf("[Device] Error uploading payload.\n");
 			return -1;
 
 		}
@@ -276,7 +276,7 @@ int device_exploit(char* payload) {
 
 	if(!libusb_control_transfer(device, 0x21, 2, 0, 0, 0, 0, 1000)) {
 
-		printf("[Device] Error sending exploit.\r\n");
+		printf("[Device] Error sending exploit.\n");
 		return -1;
 
 	}
@@ -286,44 +286,44 @@ int device_exploit(char* payload) {
 
 int device_sendrawusb0xA1(char *command) {
 
-	printf("[Device] Sending raw command to 0xA1, x, 0, 0, 0, 0, 1000.\r\n", libusb_control_transfer(device, 0xA1, atoi(command), 0, 0, 0, 0, 1000));
+	printf("[Device] Sending raw command to 0xA1, x, 0, 0, 0, 0, 1000.\n", libusb_control_transfer(device, 0xA1, atoi(command), 0, 0, 0, 0, 1000));
 
 }
 
 int device_sendrawusb0x40(char *command) {
 
-	printf("[Device] Sending raw command to 0x40, x, 0, 0, 0, 0, 1000.\r\n", libusb_control_transfer(device, 0x40, atoi(command), 0, 0, 0, 0, 1000));
+	printf("[Device] Sending raw command to 0x40, x, 0, 0, 0, 0, 1000.\n", libusb_control_transfer(device, 0x40, atoi(command), 0, 0, 0, 0, 1000));
 
 }
 
 int device_sendrawusb0x21(char *command) {
 
-	printf("[Device] Sending raw command to 0x21, x, 0, 0, 0, 0, 1000.\r\n", libusb_control_transfer(device, 0x21, atoi(command), 0, 0, 0, 0, 1000));
+	printf("[Device] Sending raw command to 0x21, x, 0, 0, 0, 0, 1000.\n", libusb_control_transfer(device, 0x21, atoi(command), 0, 0, 0, 0, 1000));
 
 }
 
 void prog_usage() {
 
 	printf("./irecovery [args]\n");
-	printf("\t-a\t\tenables auto-boot and reboots the device (exit recovery loop).\r\n");
-	printf("\t-s\t\tstarts a shell.\r\n");
-	printf("\t-r\t\tusb reset.\r\n");
-	printf("\t-u <file>\tuploads a file.\r\n");
-	printf("\t-c \"command\"\tsend a single command.\r\n");
-	printf("\t-b <file>\truns batch commands from a file(one per line).\r\n");
-	printf("\t-x <file>\tuploads a file then resets the usb connection.\r\n");
-	printf("\t-e <file>\tupload a file then run usb exploit.\r\n");
-	printf("\t-x21 <command>\tsend a raw command to 0x21.\r\n");
-	printf("\t-x40 <command>\tsend a raw command to 0x41.\r\n");
-	printf("\t-xA1 <command>\tsend a raw command to 0xA1.\r\n");
-	printf("\r\n");
-	printf("== Console / Batch Commands ==\r\n");
-	printf("\r\n");
-	printf("\t/auto-boot\tenables auto-boot and reboots the device (exit recovery loop).\r\n");
-	printf("\t/exit\t\texit the recovery console.\r\n");
-	printf("\t/upload  <file>\tupload a file to the device.\r\n");
-	printf("\t/exploit <file>\tupload a file then execute a usb exploit.\r\n");
-	printf("\t/batch   <file>\texecute commands from a batch file.\r\n");
+	printf("\t-a\t\tenables auto-boot and reboots the device (exit recovery loop).\n");
+	printf("\t-s\t\tstarts a shell.\n");
+	printf("\t-r\t\tusb reset.\n");
+	printf("\t-u <file>\tuploads a file.\n");
+	printf("\t-c \"command\"\tsend a single command.\n");
+	printf("\t-b <file>\truns batch commands from a file(one per line).\n");
+	printf("\t-x <file>\tuploads a file then resets the usb connection.\n");
+	printf("\t-e <file>\tupload a file then run usb exploit.\n");
+	printf("\t-x21 <command>\tsend a raw command to 0x21.\n");
+	printf("\t-x40 <command>\tsend a raw command to 0x41.\n");
+	printf("\t-xA1 <command>\tsend a raw command to 0xA1.\n");
+	printf("\n");
+	printf("== Console / Batch Commands ==\n");
+	printf("\n");
+	printf("\t/auto-boot\tenables auto-boot and reboots the device (exit recovery loop).\n");
+	printf("\t/exit\t\texit the recovery console.\n");
+	printf("\t/upload  <file>\tupload a file to the device.\n");
+	printf("\t/exploit <file>\tupload a file then execute a usb exploit.\n");
+	printf("\t/batch   <file>\texecute commands from a batch file.\n");
 
 }
 void prog_init() {
@@ -335,7 +335,7 @@ void prog_init() {
 
 void prog_exit() {
 
-	printf("\r\n");
+	printf("\n");
 	device_close();
 	libusb_exit(NULL);
 	exit(0);
@@ -349,11 +349,11 @@ int prog_parse(char *command) {
 	if(! strcmp(action, "help")) {
 
 		printf("Commands:\n");
-		printf("\t/exit\t\t\texit from recovery console.\r\n");
-		printf("\t/upload <file>\t\tupload file to device.\r\n");
-		printf("\t/exploit [payload]\tsend usb exploit packet.\r\n");
-		printf("\t/batch <file>\t\texecute commands from a batch file.\r\n");
-		printf("\t/auto-boot\t\t\tenable auto-boot (exit recovery loop).\r\n");
+		printf("\t/exit\t\t\texit from recovery console.\n");
+		printf("\t/upload <file>\t\tupload file to device.\n");
+		printf("\t/exploit [payload]\tsend usb exploit packet.\n");
+		printf("\t/batch <file>\t\texecute commands from a batch file.\n");
+		printf("\t/auto-boot\t\t\tenable auto-boot (exit recovery loop).\n");
 
 	} else if(! strcmp(action, "exit")) {
 
@@ -399,7 +399,7 @@ int prog_batch(char *filename) {
 	FILE* script = fopen(filename, "rb");
 
 	if (script == NULL) {
-		printf("[Program] Unable to find batch file.\r\n");
+		printf("[Program] Unable to find batch file.\n");
 		return -1;
 	}
 
@@ -447,21 +447,21 @@ int prog_console(char* logfile) {
 
 	if(libusb_set_configuration(device, 1) < 0) {
 
-		printf("[Program] Error setting configuration.\r\n");
+		printf("[Program] Error setting configuration.\n");
 		return -1;
 
 	}
 
 	if(libusb_claim_interface(device, 1) < 0) {
 
-		printf("[Program] Error claiming interface.\r\n");
+		printf("[Program] Error claiming interface.\n");
 		return -1;
 
 	}
 
 	if(libusb_set_interface_alt_setting(device, 1, 1) < 0) {
 
-		printf("[Program] Error claiming alt interface.\r\n");
+		printf("[Program] Error claiming alt interface.\n");
 		return -1;
 
 	}
@@ -469,7 +469,7 @@ int prog_console(char* logfile) {
 	char* buffer = malloc(BUF_SIZE);
 	if(buffer == NULL) {
 
-		printf("[Program] Error allocating memory.\r\n");
+		printf("[Program] Error allocating memory.\n");
 		return -1;
 
 	}
@@ -479,17 +479,17 @@ int prog_console(char* logfile) {
 
 		fd = fopen(logfile, "w");
 		if(fd == NULL) {
-			printf("[Program] Unable to open log file.\r\n");
+			printf("[Program] Unable to open log file.\n");
 			free(buffer);
 			return -1;
 		}
 
 	}
 
-	printf("[Program] Attached to Recovery Console.\r\n");
+	printf("[Program] Attached to Recovery Console.\n");
 
 	if (logfile)
-		printf("[Program] Output being logged to: %s.\r\n", logfile);
+		printf("[Program] Output being logged to: %s.\n", logfile);
 
 	while(1) {
 
@@ -535,7 +535,7 @@ int prog_console(char* logfile) {
 				if (! strcmp(action, "getenv")) {
 					char response[0x200];
 					libusb_control_transfer(device, 0xC0, 0, 0, 0, response, 0x200, 1000);
-					printf("Env: %s\r\n", response);
+					printf("Env: %s\n", response);
 
 				}
 
@@ -618,7 +618,7 @@ void prog_handle(int argc, char *argv[]) {
 
 	} else {
 
-		printf("[Program] Invalid program argument specified.\r\n");
+		printf("[Program] Invalid program argument specified.\n");
 		prog_usage();
 
 	}
@@ -626,7 +626,7 @@ void prog_handle(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 	printf("iRecovery - Version: %s - For LIBUSB: %s\n", VERSION, LIBUSB_VERSION);
-	printf("by westbaer. Thanks to pod2g, tom3q, planetbeing, geohot and posixninja.\r\nRewrite by GreySyntax.\n\n");
+	printf("by westbaer. Thanks to pod2g, tom3q, planetbeing, geohot, posixninja, iH8sn0w.\nRewrite by GreySyntax.\nImproved by xerub.\n\n");
 
 	if(argc < 2) {
 		prog_usage();
@@ -640,7 +640,7 @@ int main(int argc, char *argv[]) {
 	(void) signal(SIGINT, prog_exit);
 
 	if (device == NULL) {
-		printf("[Device] Failed to connect, check the device is in DFU or WTF (Recovery) Mode.\r\n");
+		printf("[Device] Failed to connect, check the device is in DFU or WTF (Recovery) Mode.\n");
 		return -1;
 	}
 
