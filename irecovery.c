@@ -37,14 +37,15 @@
 #define DFU_MODE        (int)0x1222
 #define BUF_SIZE        (int)0x10000
 
+static int devicemode = -1;
 static struct libusb_device_handle *device = NULL;
 
 void device_connect() {
 
-	if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, RECV_MODE)) == NULL) {
-		if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, WTF_MODE)) == NULL) {
-			if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, DFU_MODE)) == NULL) {
-
+	if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, devicemode = RECV_MODE)) == NULL) {
+		if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, devicemode = WTF_MODE)) == NULL) {
+			if ((device = libusb_open_device_with_vid_pid(NULL, VENDOR_ID, devicemode = DFU_MODE)) == NULL) {
+				devicemode = -1;
 			}
 		}
 	}
