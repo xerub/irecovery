@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS_OSX = -lusb-1.0 -framework CoreFoundation -framework IOKit -lreadline
-CFLAGS_LNX = -lusb-1.0 -lreadline
+CFLAGS_OSX = -lusb-1.0 -lobjc -framework CoreFoundation -framework IOKit -lreadline
+CFLAGS_LNX = -lusb-1.0 -lreadline -lcurses
 CFLAGS_WIN = -lusb-1.0 -lreadline
 
 all:
