@@ -28,7 +28,7 @@
 
 #include "limera1n_payload.h"
 
-#define VERSION			"2.0.2"
+#define VERSION			"2.0.5"
 #define LIBUSB_VERSION	"1.0"
 #define LIBUSB_DEBUG		0
 
