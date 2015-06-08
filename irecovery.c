@@ -506,6 +506,7 @@ void prog_usage() {
 	printf("./irecovery [args]\n");
 	printf("\t-a\t\tenables auto-boot and reboots the device (exit recovery loop).\n");
 	printf("\t-s\t\tstarts a shell.\n");
+	printf("\t-g <datafile>\tget data.\n");
 	printf("\t-r\t\tusb reset.\n");
 	printf("\t-f <file>\tsends a file.\n");
 	printf("\t-u <file>\tuploads a file.\n");
@@ -766,6 +767,124 @@ int prog_console(char* logfile) {
 	free(buffer);
 	if(fd) fclose(fd);
 	libusb_release_interface(device, 1);
+	return 0;
+}
+
+static int
+str2hex(int max, unsigned char *buf, const char *str)
+{
+	unsigned char *ptr = buf;
+	int seq = -1;
+	while (max > 0) {
+		int nibble = *str++;
+		if (nibble >= '0' && nibble <= '9') {
+			nibble -= '0';
+		} else {
+			nibble |= 0x20;
+			if (nibble >= 'a' && nibble <= 'f') {
+				nibble -= 'a' - 10;
+			} else {
+				break;
+			}
+		}
+		if (seq >= 0) {
+			*buf++ = (seq << 4) | nibble;
+			max--;
+			seq = -1;
+		} else {
+			seq = nibble;
+		}
+	}
+	return buf - ptr;
+}
+
+int prog_getdata(char* datafile) {
+
+	if(libusb_set_configuration(device, 1) < 0) {
+
+		printf("[Program] Error setting configuration.\n");
+		return -1;
+
+	}
+
+	if(libusb_claim_interface(device, 1) < 0) {
+
+		printf("[Program] Error claiming interface.\n");
+		return -1;
+
+	}
+
+	if(libusb_set_interface_alt_setting(device, 1, 1) < 0) {
+
+		printf("[Program] Error claiming alt interface.\n");
+		return -1;
+
+	}
+
+	char* buffer = malloc(BUF_SIZE);
+	if(buffer == NULL) {
+
+		printf("[Program] Error allocating memory.\n");
+		return -1;
+
+	}
+
+	FILE* fd = NULL;
+	fd = fopen(datafile, "wb");
+	if(fd == NULL) {
+		printf("[Program] Unable to open data file.\n");
+		free(buffer);
+		return -1;
+	}
+
+	printf("[Program] Attached to Recovery Console.\n");
+
+	int bytes = device_receive(buffer, BUF_SIZE);
+	if (bytes > 0) {
+		buffer[bytes - 1] = '\0';
+		printf("%s", buffer);
+	}
+
+	while(1) {
+
+		char *command = "go g";
+
+		device_sendcmd(&command);
+
+		char response[2048];
+		memset(response, 0, sizeof(response));
+		libusb_control_transfer(device, 0xC0, 0, 0, 0, response, sizeof(response), 1000);
+		if (!memcmp(response, "end-of-transmission", 19)) {
+			bytes = device_receive(buffer, BUF_SIZE);
+			if (bytes > 0) {
+				buffer[bytes - 1] = '\0';
+				printf("%s", buffer);
+			}
+			break;
+		}
+
+		unsigned len, addr, rv;
+		int where = -1;
+		int n = sscanf(response, "%u:%x:%n", &len, &addr, &where);
+		if (n != 2 || len == 0 || len >= BUF_SIZE || where < 0) {
+			response[16] = '\0';
+			printf("[Program] bad line %s...\n", response);
+			break;
+		}
+		rv = str2hex(len, buffer, response + where);
+		if (rv != len) {
+			printf("[Program] bad conversion\n");
+			break;
+		}
+
+		fwrite(buffer, 1, len, fd);
+	}
+
+
+	free(buffer);
+	fclose(fd);
+	libusb_release_interface(device, 1);
+	return 0;
 }
 
 void prog_handle(int argc, char *argv[]) {
@@ -837,7 +956,14 @@ void prog_handle(int argc, char *argv[]) {
 		else
 			prog_console(NULL);
 
-	} else {
+	} else if (! strcmp(argv[1], "-g")) {
+
+		if (argc >= 3)
+			prog_getdata(argv[2]);
+		else
+			goto usage;
+
+	} else usage: {
 
 		printf("[Program] Invalid program argument specified.\n");
 		prog_usage();
