@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -119,7 +120,7 @@ int device_upload(char* filename) {
 	unsigned int len = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	char* buffer = malloc(len);
+	unsigned char* buffer = malloc(len);
 
 	if (buffer == NULL) {
 
@@ -144,7 +145,7 @@ int device_upload(char* filename) {
 
 	int i = 0;
 	unsigned int sizesent=0;
-	char response[6];
+	unsigned char response[6];
 
 	for(i = 0; i < packets; i++) {
 
@@ -217,7 +218,7 @@ int device_buffer(char* data, int len) {
 
 	int i = 0;
 
-	char response[6];
+	unsigned char response[6];
 
 	for(i = 0; i < packets; i++) {
 
@@ -342,6 +343,8 @@ void prog_exit() {
 
 }
 
+int prog_batch(char *filename);
+
 int prog_parse(char *command) {
 
 	char* action = strtok(strdup(command), " ");
@@ -413,7 +416,6 @@ int prog_batch(char *filename) {
 
 				printf("[Program] Running command: %s", line);
 
-				char byte;
 				int offset = (strlen(line) - 1);
 
 				while(offset > 0) {
@@ -569,7 +571,7 @@ void prog_handle(int argc, char *argv[]) {
 				char command[0x200];
 				int i = 2;
 
-				for (i; i < argc; i++) {
+				for (; i < argc; i++) {
 
 					if (i > 2) strcat(command, " ");
 					strcat(command, argv[i]);
