@@ -287,19 +287,22 @@ int device_exploit(char* payload) {
 
 int device_sendrawusb0xA1(char *command) {
 
-	printf("[Device] Sending raw command to 0xA1, x, 0, 0, 0, 0, 1000.\n", libusb_control_transfer(device, 0xA1, atoi(command), 0, 0, 0, 0, 1000));
+	printf("[Device] Sending raw command to 0xA1, x, 0, 0, 0, 0, 1000.\n");
+	return libusb_control_transfer(device, 0xA1, atoi(command), 0, 0, 0, 0, 1000);
 
 }
 
 int device_sendrawusb0x40(char *command) {
 
-	printf("[Device] Sending raw command to 0x40, x, 0, 0, 0, 0, 1000.\n", libusb_control_transfer(device, 0x40, atoi(command), 0, 0, 0, 0, 1000));
+	printf("[Device] Sending raw command to 0x40, x, 0, 0, 0, 0, 1000.\n");
+	return libusb_control_transfer(device, 0x40, atoi(command), 0, 0, 0, 0, 1000);
 
 }
 
 int device_sendrawusb0x21(char *command) {
 
-	printf("[Device] Sending raw command to 0x21, x, 0, 0, 0, 0, 1000.\n", libusb_control_transfer(device, 0x21, atoi(command), 0, 0, 0, 0, 1000));
+	printf("[Device] Sending raw command to 0x21, x, 0, 0, 0, 0, 1000.\n");
+	return libusb_control_transfer(device, 0x21, atoi(command), 0, 0, 0, 0, 1000);
 
 }
 
