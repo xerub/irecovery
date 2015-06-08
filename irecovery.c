@@ -458,6 +458,13 @@ int prog_console(char* logfile) {
 
 	}
 
+	if(libusb_claim_interface(device, 0) < 0) {
+
+		printf("[Program] Error claiming interface.\n");
+		return -1;
+
+	}
+
 	if(libusb_claim_interface(device, 1) < 0) {
 
 		printf("[Program] Error claiming interface.\n");
