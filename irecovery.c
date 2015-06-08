@@ -307,6 +307,22 @@ int device_sendrawusb0x21(char *command) {
 
 }
 
+int device_receive(char *buffer, int size) {
+	int bytes = 0;
+#if 0
+	memset(buffer, 0, size);
+	libusb_bulk_transfer(device, 0x81, buffer, size, &bytes, 500);
+	return bytes;
+#else
+	int total = size;
+	while (libusb_bulk_transfer(device, 0x81, buffer, size, &bytes, 100) == 0 && bytes) {
+		buffer += bytes;
+		size -= bytes;
+	}
+	return total - size;
+#endif
+}
+
 void prog_usage() {
 
 	printf("./irecovery [args]\n");
@@ -506,10 +522,7 @@ int prog_console(char* logfile) {
 
 	while(1) {
 
-		int bytes = 0;
-
-		memset(buffer, 0, BUF_SIZE);
-		libusb_bulk_transfer(device, 0x81, buffer, BUF_SIZE, &bytes, 500);
+		int bytes = device_receive(buffer, BUF_SIZE);
 
 		if (bytes>0) {
 			int i;
