@@ -37,6 +37,10 @@
 #define DFU_MODE        (int)0x1222
 #define BUF_SIZE        (int)0x10000
 
+#define USB_TIMEOUT     10000
+
+#include "dfuhash.h"
+
 static int devicemode = -1;
 static struct libusb_device_handle *device = NULL;
 
@@ -104,6 +108,180 @@ int device_autoboot() {
 
 	return 1;
 
+}
+
+static int device_status(unsigned int* status) {
+	unsigned char buffer[6];
+	memset(buffer, '\0', 6);
+	if (libusb_control_transfer(device, 0xA1, 3, 0, 0, buffer, 6, USB_TIMEOUT) != 6) {
+		*status = 0;
+		return -1;
+	}
+
+	*status = (unsigned int) buffer[4];
+
+	return 0;
+}
+
+int device_send(char* filename, int dfu_notify_finished) {
+
+	FILE* file = fopen(filename, "rb");
+
+	if(file == NULL) {
+
+		printf("[Program] Unable to find file. (%s)\n",filename);
+		return 1;
+
+	}
+
+	fseek(file, 0, SEEK_END);
+	unsigned int len = ftell(file);
+	fseek(file, 0, SEEK_SET);
+
+	unsigned char* buffer = malloc(len);
+
+	if (buffer == NULL) {
+
+		printf("[Program] Error allocating memory.\n");
+		fclose(file);
+		return 1;
+
+	}
+
+	fread(buffer, 1, len, file);
+	fclose(file);
+
+	int error = 0;
+	int recovery_mode = (devicemode != DFU_MODE && devicemode != WTF_MODE);
+
+	unsigned int h1 = 0xFFFFFFFF;
+	unsigned char dfu_xbuf[12] = {0xff, 0xff, 0xff, 0xff, 0xac, 0x05, 0x00, 0x01, 0x55, 0x46, 0x44, 0x10};
+	int packet_size = recovery_mode ? 0x8000 : 0x800;
+	int last = len % packet_size;
+	int packets = len / packet_size;
+
+	if (last != 0) {
+		packets++;
+	} else {
+		last = packet_size;
+	}
+
+	/* initiate transfer */
+	if (recovery_mode) {
+		error = libusb_control_transfer(device, 0x41, 0, 0, 0, NULL, 0, USB_TIMEOUT);
+	} else {
+		unsigned char dump[4];
+		if (libusb_control_transfer(device, 0xa1, 5, 0, 0, dump, 1, USB_TIMEOUT) == 1) {
+			error = 0;
+		} else {
+			error = -1;
+		}
+	}
+
+	if (error) {
+		printf("[Device] Error initializing transfer.\n");
+		return error;
+	}
+
+	int i = 0;
+	unsigned long count = 0;
+	unsigned int status = 0;
+	int bytes = 0;
+	for (i = 0; i < packets; i++) {
+		int size = (i + 1) < packets ? packet_size : last;
+
+		/* Use bulk transfer for recovery mode and control transfer for DFU and WTF mode */
+		if (recovery_mode) {
+			error = libusb_bulk_transfer(device, 0x04, &buffer[i * packet_size], size, &bytes, USB_TIMEOUT);
+		} else {
+			int j;
+			for (j = 0; j < size; j++) {
+				dfu_hash_step(h1, buffer[i*packet_size + j]);
+			}
+			if (i+1 == packets) {
+				for (j = 0; j < 2; j++) {
+					dfu_hash_step(h1, dfu_xbuf[j*6 + 0]);
+					dfu_hash_step(h1, dfu_xbuf[j*6 + 1]);
+					dfu_hash_step(h1, dfu_xbuf[j*6 + 2]);
+					dfu_hash_step(h1, dfu_xbuf[j*6 + 3]);
+					dfu_hash_step(h1, dfu_xbuf[j*6 + 4]);
+					dfu_hash_step(h1, dfu_xbuf[j*6 + 5]);
+				}
+
+				char* newbuf = (char*)malloc(size + 16);
+				memcpy(newbuf, &buffer[i * packet_size], size);
+				memcpy(newbuf+size, dfu_xbuf, 12);
+				newbuf[size+12] = h1 & 0xFF;
+				newbuf[size+13] = (h1 >> 8) & 0xFF;
+				newbuf[size+14] = (h1 >> 16) & 0xFF;
+				newbuf[size+15] = (h1 >> 24) & 0xFF;
+				size += 16;
+				bytes = libusb_control_transfer(device, 0x21, 1, i, 0, (unsigned char*)newbuf, size, USB_TIMEOUT);
+				free(newbuf);
+			} else {
+				bytes = libusb_control_transfer(device, 0x21, 1, i, 0, &buffer[i * packet_size], size, USB_TIMEOUT);
+			}
+		}
+
+		if (bytes != size) {
+			printf("[Device] Error sending packet.\n");
+			return -1;
+		}
+
+		if (!recovery_mode) {
+			error = device_status(&status);
+		}
+
+		if (error) {
+			printf("[Device] Error sending packet.\n");
+			return error;
+		}
+
+		if (!recovery_mode && status != 5) {
+			int retry = 0;
+
+			while (retry < 20) {
+				device_status(&status);
+				if (status == 5) {
+					break;
+				}
+				sleep(1);
+				retry++;
+			}
+
+			if (status != 5) {
+				printf("[Device] Invalid status error during file upload.\n");
+				return -1;
+			}
+		}
+
+		count += size;
+		printf("Sent: %d bytes - %lu of %u\n", bytes, count, len);
+	}
+
+	if (dfu_notify_finished && !recovery_mode) {
+		libusb_control_transfer(device, 0x21, 1, packets, 0, (unsigned char*) buffer, 0, USB_TIMEOUT);
+
+		for (i = 0; i < 2; i++) {
+			error = device_status(&status);
+			if (error) {
+				printf("[Device] Error receiving status while uploading file.\n");
+				return error;
+			}
+		}
+
+		if (dfu_notify_finished == 2) {
+			/* we send a pseudo ZLP here just in case */
+			libusb_control_transfer(device, 0x21, 1, 0, 0, 0, 0, USB_TIMEOUT);
+		}
+
+		device_reset();
+	}
+
+	printf("[Device] Successfully uploaded file.\n");
+
+	free(buffer);
+	return 0;
 }
 
 int device_upload(char* filename) {
@@ -329,6 +507,7 @@ void prog_usage() {
 	printf("\t-a\t\tenables auto-boot and reboots the device (exit recovery loop).\n");
 	printf("\t-s\t\tstarts a shell.\n");
 	printf("\t-r\t\tusb reset.\n");
+	printf("\t-f <file>\tsends a file.\n");
 	printf("\t-u <file>\tuploads a file.\n");
 	printf("\t-c \"command\"\tsend a single command.\n");
 	printf("\t-b <file>\truns batch commands from a file(one per line).\n");
@@ -342,6 +521,7 @@ void prog_usage() {
 	printf("\n");
 	printf("\t/auto-boot\tenables auto-boot and reboots the device (exit recovery loop).\n");
 	printf("\t/exit\t\texit the recovery console.\n");
+	printf("\t/send    <file>\tsend a file to the device.\n");
 	printf("\t/upload  <file>\tupload a file to the device.\n");
 	printf("\t/exploit <file>\tupload a file then execute a usb exploit.\n");
 	printf("\t/batch   <file>\texecute commands from a batch file.\n");
@@ -373,6 +553,7 @@ int prog_parse(char *command) {
 
 		printf("Commands:\n");
 		printf("\t/exit\t\t\texit from recovery console.\n");
+		printf("\t/send <file>\t\tsend file to device.\n");
 		printf("\t/upload <file>\t\tupload file to device.\n");
 		printf("\t/exploit [payload]\tsend usb exploit packet.\n");
 		printf("\t/batch <file>\t\texecute commands from a batch file.\n");
@@ -382,6 +563,12 @@ int prog_parse(char *command) {
 
 		free(action);
 		return -1;
+
+	} else if(strcmp(action, "send") == 0) {
+
+		char* filename = strtok(NULL, " ");
+		if(filename != NULL)
+			device_send(filename, 0);
 
 	} else if(strcmp(action, "upload") == 0) {
 
@@ -618,6 +805,13 @@ void prog_handle(int argc, char *argv[]) {
 
 		prog_batch(argv[2]);
 
+	} else if (! strcmp(argv[1], "-f")) {
+
+		if (argc == 3) {
+
+			device_send(argv[2], 1);
+
+		}
 	} else if (! strcmp(argv[1], "-u") || ! strcmp(argv[1], "-x")) {
 
 		if (argc == 3) {
